@@ -1,0 +1,62 @@
+# Contributing to {{ project_name }}
+
+Thank you for considering a contribution! This guide will help you get started.
+
+## Prerequisites
+
+- **Python ≥ 3.12**
+- **[uv](https://docs.astral.sh/uv/)** — fast Python package manager
+
+## Local Setup
+
+```bash
+git clone https://github.com/{{ github_org }}/{{ project_name }}.git
+cd {{ project_name }}
+uv sync --dev
+```
+
+## Development Workflow
+
+### Run the quality pipeline
+
+```bash
+uv run ruff check .            # Lint
+uv run ruff format --check .   # Format check
+uv run pyright                 # Type check
+uv run pytest --cov=src        # Test + coverage
+```
+
+### Auto-fix formatting and lint
+
+```bash
+uv run ruff format .
+uv run ruff check --fix .
+```
+
+### Build documentation locally
+
+```bash
+uv sync --group docs
+uv run mkdocs serve
+```
+
+## Submitting Changes
+
+1. Fork the repository and create a branch from `main`.
+2. Make your changes. Add or update tests as needed.
+3. Ensure the full quality pipeline passes locally.
+4. Open a Pull Request with a clear description of what and why.
+
+## Commit Messages
+
+Use clear, imperative-mood messages: `Add feature X`, `Fix bug in Y`, `Remove deprecated Z`.
+
+## Code Style
+
+- All code must pass `ruff check`, `ruff format --check`, and `pyright` in strict mode.
+- Tests go in `tests/unit/` or `tests/integration/`.
+- Follow the [Google docstring convention](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings).
+
+## Reporting Issues
+
+Use the [issue templates](https://github.com/{{ github_org }}/{{ project_name }}/issues/new/choose) to report bugs or request features.

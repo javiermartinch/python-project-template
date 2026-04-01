@@ -1,0 +1,8 @@
+"""{{ package_name }} — A Python project template."""
+
+from importlib.metadata import version
+
+from {{ package_name }}.main import greet
+
+__version__ = version("{{ project_name }}")
+__all__ = ["__version__", "greet"]
