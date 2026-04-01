@@ -1,0 +1,152 @@
+_min_copier_version: "9.4.0"
+_subdirectory: template
+_templates_suffix: .jinja
+_exclude:
+  - "**/__pycache__"
+  - "**/*.py[co]"
+  - "**/.coverage*"
+  - "**/.mypy_cache"
+  - "**/.pyright_cache"
+  - "**/.pytest_cache"
+  - "**/.ruff_cache"
+  - "**/.venv"
+  - "**/htmlcov"
+  - "**/site"
+  - "**/.DS_Store"
+  - "**/Thumbs.db"
+
+# =============================================================================
+# Wizard Mode
+# =============================================================================
+
+config_wizard:
+  type: str
+  choices:
+    - "Standard Elite 2026 (Recommended)"
+    - "Custom Selection (Granular control)"
+  default: "Standard Elite 2026 (Recommended)"
+  help: "Choose between the standard elite setup or customize every component."
+
+# =============================================================================
+# Basic Metadata
+# =============================================================================
+
+project_name:
+  type: str
+  help: "Project name in kebab-case (e.g., my-awesome-lib)"
+  validator: >-
+    {% if not project_name | regex_search('^[a-z][a-z0-9](-?[a-z0-9])*$') %}
+    Must be lowercase kebab-case (e.g., my-awesome-lib)
+    {% endif %}
+
+package_name:
+  type: str
+  default: "{{ project_name | replace('-', '_') }}"
+  help: "Python package name (auto-derived, underscores)"
+
+project_description:
+  type: str
+  default: "A Python project following 2026 engineering standards."
+  help: "Short project description"
+
+author_name:
+  type: str
+  help: "Author full name"
+
+author_email:
+  type: str
+  help: "Author email"
+
+license:
+  type: str
+  choices:
+    MIT: "MIT"
+    Apache-2.0: "Apache-2.0"
+    BSD-3-Clause: "BSD-3-Clause"
+    GPL-3.0-only: "GPL-3.0-only"
+    Unlicense: "Unlicense"
+  default: "MIT"
+  help: "Project license"
+
+# =============================================================================
+# Custom Flags (Visible only if Custom Mode)
+# =============================================================================
+
+include_github:
+  type: bool
+  default: true
+  when: "{{ config_wizard == 'Custom Selection (Granular control)' }}"
+  help: "Include GitHub-specific files (.github folder)?"
+
+include_docs:
+  type: bool
+  default: true
+  when: "{{ config_wizard == 'Custom Selection (Granular control)' }}"
+  help: "Generate MkDocs documentation?"
+
+include_tests:
+  type: bool
+  default: true
+  when: "{{ config_wizard == 'Custom Selection (Granular control)' }}"
+  help: "Include tests/ folder and pytest configuration?"
+
+include_pre_commit:
+  type: bool
+  default: true
+  when: "{{ config_wizard == 'Custom Selection (Granular control)' }}"
+  help: "Include .pre-commit-config.yaml for local quality checks?"
+
+github_org:
+  type: str
+  when: "{{ config_wizard == 'Standard Elite 2026 (Recommended)' or include_github or include_docs }}"
+  help: "GitHub organization or username (required for GitHub/docs features)"
+
+# =============================================================================
+# GitHub Features (Only if include_github is True)
+# =============================================================================
+
+include_ci:
+  type: bool
+  default: true
+  when: >-
+    {% if config_wizard == 'Standard Elite 2026 (Recommended)' %}
+      {{ False }}
+    {% elif not include_github %}
+      {{ False }}
+    {% else %}
+      {{ True }}
+    {% endif %}
+  help: "Configure CI workflows (Tests, Lint)?"
+
+include_pypi_publish:
+  type: bool
+  default: true
+  when: >-
+    {% if config_wizard == 'Standard Elite 2026 (Recommended)' %}
+      {{ False }}
+    {% elif not include_github %}
+      {{ False }}
+    {% else %}
+      {{ True }}
+    {% endif %}
+  help: "Include OIDC publishing to PyPI on Releases?"
+
+include_renovate:
+  type: bool
+  default: true
+  when: >-
+    {% if config_wizard == 'Standard Elite 2026 (Recommended)' %}
+      {{ False }}
+    {% elif not include_github %}
+      {{ False }}
+    {% else %}
+      {{ True }}
+    {% endif %}
+  help: "Include renovate.json for automated dependency updates?"
+
+# =============================================================================
+# Post-Generation Tasks
+# =============================================================================
+
+_tasks:
+  - "python .copier-cleanup.py"

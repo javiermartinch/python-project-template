@@ -1,0 +1,223 @@
+# =============================================================================
+# Python Project Template — Elite Engineering Standards 2026
+# Build: hatchling | Deps: uv | Lint/Format: ruff | Types: pyright
+# =============================================================================
+
+[build-system]
+requires = ["hatchling>=1.28", "hatch-vcs>=0.4"]
+build-backend = "hatchling.build"
+
+# ---------------------------------------------------------------------------
+# Project Metadata (PEP 621)
+# ---------------------------------------------------------------------------
+
+[project]
+name = "{{ project_name }}"
+dynamic = ["version"]
+description = "{{ project_description }}"
+readme = "README.md"
+license = "{{ license }}"
+requires-python = ">=3.12"
+authors = [
+    { name = "{{ author_name }}", email = "{{ author_email }}" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Intended Audience :: Developers",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+{% if include_github -%}
+Homepage = "https://github.com/{{ github_org }}/{{ project_name }}"
+Repository = "https://github.com/{{ github_org }}/{{ project_name }}"
+Changelog = "https://github.com/{{ github_org }}/{{ project_name }}/releases"
+{% endif -%}
+{% if include_docs -%}
+Documentation = "https://{{ github_org }}.github.io/{{ project_name }}"
+{% endif -%}
+
+# ---------------------------------------------------------------------------
+# Hatchling Build — Explicit src layout boundary
+# ---------------------------------------------------------------------------
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/{{ package_name }}/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/{{ package_name }}"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/.github",
+    "/docs",
+    "/tests",
+    "/site",
+    "/.pre-commit-config.yaml",
+    "/mkdocs.yml",
+    "/renovate.json",
+    "/uv.lock",
+    "/.copier-cleanup.py",
+]
+
+# ---------------------------------------------------------------------------
+# Dependency Groups (PEP 735) — managed by uv
+# ---------------------------------------------------------------------------
+
+[dependency-groups]
+dev = [
+    {% if include_tests -%}
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
+    {% endif -%}
+    "pyright>=1.1.400",
+    "ruff>=0.11",
+    {% if include_pre_commit -%}
+    "pre-commit>=4.0",
+    {% endif -%}
+]
+{% if include_docs -%}
+docs = [
+    "mkdocs-material>=9.6",
+    "mkdocs-minify-plugin>=0.8",
+    "mkdocstrings[python]>=0.27",
+]
+{% endif -%}
+
+# ---------------------------------------------------------------------------
+# Ruff — Ultra-Strict Linter & Formatter (Rust-powered)
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# Aggressive: enable ALL rules, surgically disable conflicts
+select = ["ALL"]
+ignore = [
+    # ── Formatter conflicts ──────────────────────────────────────────────────
+    "COM812",   # Missing trailing comma — handled by ruff format
+    "ISC001",   # Implicit string concatenation on single line — formatter conflict
+
+    # ── Docstring mutual exclusions (Google convention) ──────────────────────
+    "D203",     # Blank line before class docstring — conflicts with D211
+    "D213",     # Multi-line summary on second line — conflicts with D212
+
+    # ── Docstring noise (acceptable to omit in modules / packages / __init__)─
+    "D100",     # Missing docstring in public module
+    "D104",     # Missing docstring in public package
+    "D107",     # Missing docstring in __init__
+
+    # ── Too opinionated for a general template ───────────────────────────────
+    "CPY001",   # Missing copyright notice (requires per-project config)
+    "TD003",    # Missing issue link on TODO comments
+    "FIX002",   # Line contains TODO
+
+    # ── Subprocess security — overly broad; validate at review time ──────────
+    "S603",     # subprocess call — check for untrusted input
+    "S607",     # Starting process with partial executable path
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",     # Allow assert in tests
+    "PLR2004",  # Allow magic values in tests
+    "ANN",      # Don't require type annotations in tests
+    "D",        # Don't require docstrings in tests
+    "FBT",      # Allow boolean positional args in tests
+    "ARG",      # Allow unused arguments (fixtures)
+    "SLF001",   # Allow private member access in tests
+]
+"__init__.py" = [
+    "F401",     # Allow re-exports via unused imports
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 6
+
+[tool.ruff.lint.isort]
+known-first-party = ["{{ package_name }}"]
+combine-as-imports = true
+force-sort-within-sections = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-type-checking]
+strict = true
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = 80
+
+# ---------------------------------------------------------------------------
+# Pyright — Strict Static Type Checking
+# ---------------------------------------------------------------------------
+
+[tool.pyright]
+include = ["src"{% if include_tests %}, "tests"{% endif %}]
+exclude = ["**/__pycache__", "**/.venv"]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+# Pragmatic overrides for strict mode
+reportMissingTypeStubs = false
+reportUnnecessaryTypeIgnoreComment = true
+reportMissingModuleSource = false
+
+{% if include_tests -%}
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+xfail_strict = true
+filterwarnings = ["error"]
+addopts = ["--strict-markers", "--strict-config", "-ra"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+# ---------------------------------------------------------------------------
+# Coverage — 100% enforced (branch coverage enabled)
+# ---------------------------------------------------------------------------
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = ["src/{{ package_name }}/_version.py"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+precision = 2
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+    "@overload",
+    "@typing.overload",
+    "@abstractmethod",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]
+{% endif -%}

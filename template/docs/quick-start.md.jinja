@@ -1,0 +1,27 @@
+# Quick Start
+
+This guide gets a fresh checkout of **{{ project_name }}** ready for local development.
+
+## Install Dependencies
+
+```bash
+uv sync --dev
+```
+
+## Run the Example
+
+```python
+from {{ package_name }} import greet
+
+print(greet("World"))
+```
+
+## Run the Quality Checks
+
+```bash
+uv run ruff check .
+uv run pyright
+{% if include_tests -%}
+uv run pytest --cov=src
+{% endif -%}
+```

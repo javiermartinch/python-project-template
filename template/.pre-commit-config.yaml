@@ -1,0 +1,33 @@
+default_stages: [pre-commit]
+
+repos:
+  # ── uv lockfile integrity check ───────────────────────────────────────────
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.11.2
+    hooks:
+      # Bloqueante: validates uv.lock is in sync with pyproject.toml
+      - id: uv-lock
+
+  # ── Local hooks aligned with uv.lock versions ─────────────────────────────
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff Linter (aligned to uv.lock)
+        entry: uv run ruff check --fix --exit-non-zero-on-fix
+        language: system
+        types: [python]
+        require_serial: true
+
+      - id: ruff-format
+        name: Ruff Formatter (aligned to uv.lock)
+        entry: uv run ruff format
+        language: system
+        types: [python]
+        require_serial: true
+
+      - id: pyright-strict
+        name: Pyright Type Checking (aligned to uv.lock)
+        entry: uv run pyright
+        language: system
+        types: [python]
+        pass_filenames: false
