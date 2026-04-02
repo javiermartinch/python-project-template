@@ -30,8 +30,8 @@ jobs:
       - name: Pyright
         run: uv run pyright .
 
-      # - name: Build repository docs
-      #   run: uv run mkdocs build --strict
+      - name: Build repository docs
+        run: uv run mkdocs build --strict
 
   template-tests:
     name: Template Tests (Python ${{ matrix.python-version }})
