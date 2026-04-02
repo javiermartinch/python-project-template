@@ -12,9 +12,12 @@ on:
       - "docs/**"
       - "mkdocs.yml"
       - "src/**"
+      - ".github/workflows/docs.yml"
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   deploy:
