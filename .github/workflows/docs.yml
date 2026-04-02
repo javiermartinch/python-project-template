@@ -12,6 +12,13 @@ on:
       - "docs/**"
       - "mkdocs.yml"
       - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -31,7 +38,7 @@ jobs:
           enable-cache: true
 
       - name: Install docs dependencies
-        run: uv sync
+        run: uv sync --locked --group docs
 
       - name: Build & Deploy to GitHub Pages
         run: uv run mkdocs gh-deploy --force
