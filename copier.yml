@@ -143,10 +143,3 @@ include_renovate:
       {{ True }}
     {% endif %}
   help: "Include renovate.json for automated dependency updates?"
-
-# =============================================================================
-# Post-Generation Tasks
-# =============================================================================
-
-_tasks:
-  - ["{{ _copier_python }}", ".copier-cleanup.py"]

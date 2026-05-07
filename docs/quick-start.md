@@ -21,7 +21,13 @@ Before starting, you need:
 
 ### Step 1: Generate the Project
 
-Run Copier and point it to the template repository:
+If you do not have Copier installed yet, install it with uv:
+
+```bash
+uv tool install copier
+```
+
+Then run Copier and point it to the template repository:
 
 ```bash
 copier copy gh:javiermartinch/python-project-template my-new-project

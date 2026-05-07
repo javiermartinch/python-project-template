@@ -25,6 +25,7 @@ Run this from the repository root before opening a PR:
 
 ```bash
 uv sync --dev --group docs
+uv run pre-commit run --all-files
 uv run ruff check tests
 uv run pyright tests
 uv run mkdocs build --strict
