@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -168,6 +169,38 @@ def test_minimal_generation(copie):
     smoke_result = run_import_smoke(result.project_dir, "test_minimal")
     assert_command_ok(smoke_result, "Import smoke test in minimal project")
     assert smoke_result.stdout.strip() == "Hello, Smoke!"
+
+
+def test_generation_without_python_on_path(copie, monkeypatch, tmp_path):
+    """Verify cleanup works even when no python executable is available on PATH."""
+    empty_bin = tmp_path / "bin"
+    empty_bin.mkdir()
+
+    git_path = shutil.which("git")
+    assert git_path is not None
+    (empty_bin / "git").symlink_to(git_path)
+
+    monkeypatch.setenv("PATH", str(empty_bin))
+
+    result = copie.copy(extra_answers={
+        "config_wizard": "Custom Selection (Granular control)",
+        "include_github": False,
+        "include_docs": False,
+        "include_tests": False,
+        "include_pre_commit": False,
+        "project_name": "test-no-python-path",
+        "author_name": "Test Author",
+        "author_email": "test@example.com",
+    })
+
+    assert result.exit_code == 0
+    assert result.exception is None
+    assert not (result.project_dir / ".github").exists()
+    assert not (result.project_dir / "docs").exists()
+    assert not (result.project_dir / "tests").exists()
+    assert not (result.project_dir / ".pre-commit-config.yaml").exists()
+    assert not (result.project_dir / "renovate.json").exists()
+    assert not (result.project_dir / ".copier-cleanup.py").exists()
 
 # -----------------------------------------------------------------------------
 # Test Scenario 3: GitHub Only (Hybrid)

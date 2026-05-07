@@ -149,4 +149,4 @@ include_renovate:
 # =============================================================================
 
 _tasks:
-  - "python .copier-cleanup.py"
+  - ["{{ _copier_python }}", ".copier-cleanup.py"]
