@@ -9,6 +9,7 @@ authors = [
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4.0",
     "pytest>=8.0",
     "pytest-copie>=0.1",
     "ruff>=0.11",

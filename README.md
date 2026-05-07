@@ -13,6 +13,9 @@
 ## Quick Start
 
 ```bash
+# Install Copier once
+uv tool install copier
+
 # Generate the project
 copier copy gh:javiermartinch/python-project-template my-new-project
 cd my-new-project

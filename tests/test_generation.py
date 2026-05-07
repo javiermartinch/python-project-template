@@ -1,11 +1,14 @@
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 # =============================================================================
 # Python Project Template — Template Testing Suite
 # Tests move from .jinja into rendered Python/TOML/Markdown
 # =============================================================================
+
+TEMPLATE_ROOT = Path(__file__).resolve().parents[1]
 
 
 def run_command(project_path: Path, *command: str) -> subprocess.CompletedProcess[str]:
@@ -16,6 +19,39 @@ def run_command(project_path: Path, *command: str) -> subprocess.CompletedProces
         text=True,
         check=False,
     )
+
+
+def run_copier_copy(
+    destination: Path, extra_answers: dict[str, str]
+) -> subprocess.CompletedProcess[str]:
+    template_copy = destination.parent / "template"
+    shutil.copytree(
+        TEMPLATE_ROOT,
+        template_copy,
+        ignore=shutil.ignore_patterns(
+            ".git",
+            ".venv",
+            "site",
+            "__pycache__",
+            ".pytest_cache",
+            ".mypy_cache",
+            ".ruff_cache",
+            ".pyright_cache",
+        ),
+    )
+
+    command = [
+        sys.executable,
+        "-m",
+        "copier",
+        "copy",
+        str(template_copy),
+        str(destination),
+        "--defaults",
+    ]
+    for key, value in extra_answers.items():
+        command.extend(["-d", f"{key}={value}"])
+    return run_command(template_copy, *command)
 
 
 def assert_command_ok(result: subprocess.CompletedProcess[str], context: str) -> None:
@@ -30,7 +66,9 @@ def initialize_git_repo(project_path: Path) -> None:
     assert_command_ok(init_result, "Git repository initialization")
 
 
-def sync_project(project_path: Path, *, include_docs: bool = False) -> subprocess.CompletedProcess[str]:
+def sync_project(
+    project_path: Path, *, include_docs: bool = False
+) -> subprocess.CompletedProcess[str]:
     command = ["uv", "sync", "--dev"]
     if include_docs:
         command.extend(["--group", "docs"])
@@ -59,7 +97,9 @@ def build_docs(project_path: Path) -> subprocess.CompletedProcess[str]:
     return run_command(project_path, "uv", "run", "mkdocs", "build", "--strict")
 
 
-def run_import_smoke(project_path: Path, package_name: str) -> subprocess.CompletedProcess[str]:
+def run_import_smoke(
+    project_path: Path, package_name: str
+) -> subprocess.CompletedProcess[str]:
     return run_command(
         project_path,
         "uv",
@@ -69,23 +109,27 @@ def run_import_smoke(project_path: Path, package_name: str) -> subprocess.Comple
         f"from {package_name} import greet; print(greet('Smoke'))",
     )
 
+
 # -----------------------------------------------------------------------------
 # Test Scenario 1: Standard Elite (The full package)
 # -----------------------------------------------------------------------------
 
+
 def test_standard_generation(copie):
     """Verify that 'Standard' mode generates all components."""
-    result = copie.copy(extra_answers={
-        "config_wizard": "Standard Elite 2026 (Recommended)",
-        "project_name": "test-standard",
-        "github_org": "test-org",
-        "author_name": "Test Author",
-        "author_email": "test@example.com",
-    })
-    
+    result = copie.copy(
+        extra_answers={
+            "config_wizard": "Standard Elite 2026 (Recommended)",
+            "project_name": "test-standard",
+            "github_org": "test-org",
+            "author_name": "Test Author",
+            "author_email": "test@example.com",
+        }
+    )
+
     assert result.exit_code == 0
     assert result.exception is None
-    
+
     # Structural checks (Presence)
     assert (result.project_dir / ".github" / "workflows" / "ci.yml").exists()
     assert (result.project_dir / "docs" / "index.md").exists()
@@ -120,37 +164,41 @@ def test_standard_generation(copie):
     docs_result = build_docs(result.project_dir)
     assert_command_ok(docs_result, "MkDocs build in standard project")
 
+
 # -----------------------------------------------------------------------------
 # Test Scenario 2: Minimal Custom (No GitHub, No Docs, No Tests)
 # -----------------------------------------------------------------------------
 
+
 def test_minimal_generation(copie):
     """Verify that 'Custom' mode with all features disabled only leaves essentials."""
-    result = copie.copy(extra_answers={
-        "config_wizard": "Custom Selection (Granular control)",
-        "include_github": False,
-        "include_docs": False,
-        "include_tests": False,
-        "include_pre_commit": False,
-        "project_name": "test-minimal",
-        "author_name": "Test Author",
-        "author_email": "test@example.com",
-    })
-    
+    result = copie.copy(
+        extra_answers={
+            "config_wizard": "Custom Selection (Granular control)",
+            "include_github": False,
+            "include_docs": False,
+            "include_tests": False,
+            "include_pre_commit": False,
+            "project_name": "test-minimal",
+            "author_name": "Test Author",
+            "author_email": "test@example.com",
+        }
+    )
+
     assert result.exit_code == 0
-    
+
     # Removal checks (Physical cleanup)
     assert not (result.project_dir / ".github").exists()
     assert not (result.project_dir / "docs").exists()
     assert not (result.project_dir / "tests").exists()
     assert not (result.project_dir / ".pre-commit-config.yaml").exists()
     assert not (result.project_dir / "renovate.json").exists()
-    
+
     # Content checks (Jinja conditioning in pyproject.toml)
     pyproject_content = (result.project_dir / "pyproject.toml").read_text()
     assert "github.com" not in pyproject_content
     assert "dependency-groups.docs" not in pyproject_content
-    assert "pytest" not in pyproject_content # Should not be in dev group
+    assert "pytest" not in pyproject_content  # Should not be in dev group
 
     initialize_git_repo(result.project_dir)
 
@@ -171,65 +219,65 @@ def test_minimal_generation(copie):
     assert smoke_result.stdout.strip() == "Hello, Smoke!"
 
 
-def test_generation_without_python_on_path(copie, monkeypatch, tmp_path):
-    """Verify cleanup works even when no python executable is available on PATH."""
-    empty_bin = tmp_path / "bin"
-    empty_bin.mkdir()
+def test_cli_generation_without_trust_flag(tmp_path):
+    """Verify the template can be generated from the CLI without --trust."""
+    destination = tmp_path / "test-no-trust"
 
-    git_path = shutil.which("git")
-    assert git_path is not None
-    (empty_bin / "git").symlink_to(git_path)
+    result = run_copier_copy(
+        destination,
+        {
+            "config_wizard": "Custom Selection (Granular control)",
+            "include_github": "false",
+            "include_docs": "false",
+            "include_tests": "false",
+            "include_pre_commit": "false",
+            "project_name": "test-no-trust",
+            "author_name": "Test Author",
+            "author_email": "test@example.com",
+        },
+    )
 
-    monkeypatch.setenv("PATH", str(empty_bin))
+    assert_command_ok(result, "Copier CLI copy without trust")
+    assert "potentially unsafe feature" not in result.stderr
+    assert (destination / "pyproject.toml").exists()
+    assert not (destination / ".github").exists()
+    assert not (destination / "docs").exists()
+    assert not (destination / "tests").exists()
+    assert not (destination / ".pre-commit-config.yaml").exists()
+    assert not (destination / "renovate.json").exists()
 
-    result = copie.copy(extra_answers={
-        "config_wizard": "Custom Selection (Granular control)",
-        "include_github": False,
-        "include_docs": False,
-        "include_tests": False,
-        "include_pre_commit": False,
-        "project_name": "test-no-python-path",
-        "author_name": "Test Author",
-        "author_email": "test@example.com",
-    })
-
-    assert result.exit_code == 0
-    assert result.exception is None
-    assert not (result.project_dir / ".github").exists()
-    assert not (result.project_dir / "docs").exists()
-    assert not (result.project_dir / "tests").exists()
-    assert not (result.project_dir / ".pre-commit-config.yaml").exists()
-    assert not (result.project_dir / "renovate.json").exists()
-    assert not (result.project_dir / ".copier-cleanup.py").exists()
 
 # -----------------------------------------------------------------------------
 # Test Scenario 3: GitHub Only (Hybrid)
 # -----------------------------------------------------------------------------
 
+
 def test_github_no_docs(copie):
     """Verify that 'Custom' mode can include GitHub but exclude Docs."""
-    result = copie.copy(extra_answers={
-        "config_wizard": "Custom Selection (Granular control)",
-        "include_github": True,
-        "include_docs": False,
-        "include_ci": True,
-        "project_name": "test-hybrid",
-        "github_org": "test-org",
-        "author_name": "Test Author",
-        "author_email": "test@example.com",
-    })
-    
+    result = copie.copy(
+        extra_answers={
+            "config_wizard": "Custom Selection (Granular control)",
+            "include_github": True,
+            "include_docs": False,
+            "include_ci": True,
+            "project_name": "test-hybrid",
+            "github_org": "test-org",
+            "author_name": "Test Author",
+            "author_email": "test@example.com",
+        }
+    )
+
     assert result.exit_code == 0
-    
+
     # Correct folder separation
     assert (result.project_dir / ".github").exists()
     assert not (result.project_dir / "docs").exists()
     assert not (result.project_dir / "mkdocs.yml").exists()
-    
+
     # Content checks in README
     readme_content = (result.project_dir / "README.md").read_text()
-    assert "[![CI]" in readme_content # Badge should exist
-    assert "MkDocs" not in readme_content # Docs reference should NOT exist
+    assert "[![CI]" in readme_content  # Badge should exist
+    assert "MkDocs" not in readme_content  # Docs reference should NOT exist
 
     initialize_git_repo(result.project_dir)
 
